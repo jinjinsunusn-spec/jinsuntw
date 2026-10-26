@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>天翼之鏈韓版紙娃娃</title>
+<meta name="description" content="新天翼之鏈韓國版紙娃娃模擬器，以 Ruffle 在瀏覽器中直接播放原始 Flash 檔。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="新天翼之鏈 韓國版紙娃娃">
+<meta property="og:description" content="點開就能在瀏覽器換裝、染色，不用安裝 Flash。">
+<meta name="theme-color" content="#e8774a">
+<style>
+  /* 單欄置中：標題列 + 4:3 播放區 + 說明 */
+  :root {
+    --bg: #17142b;
+    --panel: #221d3f;
+    --line: #3a3366;
+    --fg: #ece8ff;
+    --muted: #a39cce;
+    --accent: #e8774a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+    font-family: system-ui, "Microsoft JhengHei", "PingFang TC", sans-serif; line-height: 1.6; }
+  .wrap { max-width: 980px; margin: 0 auto;
+    padding-block: 20px 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .02em; }
+  header span { color: var(--muted); font-size: 13px; }
+  #stage { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; background: #000;
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  #stage ruffle-player { width: 100%; height: 100%; display: block; }
+  .msg { height: 100%; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: var(--muted); }
+  .tips { margin-top: 16px; padding: 14px 16px; background: var(--panel); border-radius: 6px; font-size: 13px; color: var(--muted); }
+  .tips p { margin: 0 0 6px; }
+  .tips p:last-child { margin: 0; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>新天翼之鏈 韓國版紙娃娃</h1>
+    <span>TalesWeaver Cody Simulator</span>
+  </header>
+
+  <div id="stage"><div class="msg">正在載入 Ruffle 模擬器…</div></div>
+
+  <div class="tips">
+    <p>點畫面中的裝備圖示就能換裝，下方色塊可以幫頭髮、衣服和腰帶染色。手機也能開，但畫面較小，建議用電腦操作。</p>
+    <p>Flash 原檔來自 <a href="https://tw.17173.com/up/rs03.shtml" target="_blank" rel="noopener">17173 新天翼之鏈專區</a>，遊戲美術版權屬原遊戲公司所有。本頁只以 <a href="https://ruffle.rs/" target="_blank" rel="noopener">Ruffle</a> 播放原檔，不另存或修改任何素材。</p>
+  </div>
+</div>
+
+<script>
+  const SWF_URL = "https://images.17173cdn.com/tw/images/guide/simul2.swf";
+  const RUFFLE_SOURCES = [
+    "https://unpkg.com/@ruffle-rs/ruffle",
+    "https://cdn.jsdelivr.net/npm/@ruffle-rs/ruffle"
+  ];
+
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = { autoplay: "on", unmuteOverlay: "hidden", letterbox: "on", contextMenu: "on" };
+
+  const stage = document.getElementById("stage");
+
+  function showMessage(text) {
+    stage.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.textContent = text;
+    stage.appendChild(div);
+  }
+
+  function injectScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("無法載入 " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  function waitForApi(timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const start = Date.now();
+      (function check() {
+        const api = window.RufflePlayer;
+        if (api && typeof api.newest === "function" && api.newest()) return resolve(api.newest());
+        if (Date.now() - start > timeoutMs) return reject(new Error("Ruffle 初始化逾時"));
+        setTimeout(check, 100);
+      })();
+    });
+  }
+
+  async function getRuffle() {
+    for (const src of RUFFLE_SOURCES) {
+      try {
+        await injectScript(src);
+        return await waitForApi(10000);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    throw new Error("Ruffle 模擬器載入失敗，請確認網路連線後重新整理頁面。");
+  }
+
+  getRuffle()
+    .then(ruffle => {
+      stage.innerHTML = "";
+      const player = ruffle.createPlayer();
+      stage.appendChild(player);
+      return player.load(SWF_URL);
+    })
+    .catch(err => showMessage(err.message || "紙娃娃載入失敗，請稍後再試。"));
+</script>
+</body>
+</html>
